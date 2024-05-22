@@ -39,7 +39,7 @@ public final class Main {
 
         Gson gson = new Gson();
         List<RDSEntry> entries = new ArrayList<>();
-        List<String> ps = new ArrayList<>();
+        Map<String, Integer> ps = new HashMap<>();
         long absoluteStart = Long.MAX_VALUE;
         long absoluteEnd = Long.MIN_VALUE;
         long transmitterStart = Long.MAX_VALUE;
@@ -51,7 +51,10 @@ public final class Main {
             while ((line = reader.readLine()) != null) {
                 RDSEntry entry = gson.fromJson(line, RDSEntry.class);
                 if (entry != null) {
-                    if (entry.ps != null && !ps.contains(entry.ps)) ps.add(entry.ps);
+                    if (entry.ps != null) {
+                        ps.put(entry.ps, ps.getOrDefault(entry.ps, 0) + 1);
+
+                    }
                     if (entry.clock_time != null) {
                         try {
                             long ttime = format.parse(entry.clock_time).getTime();
@@ -114,6 +117,13 @@ public final class Main {
             break;
         }
 
+        String psid = "UNKNOWN";
+        if (!ps.isEmpty()) {
+            List<Map.Entry<String, Integer>> pss = new ArrayList<>(ps.entrySet());
+            pss.sort((e1, e2) -> e2.getValue() - e1.getValue());
+            psid = pss.get(0).getKey();
+        }
+
         err.println("Writing labels...");
         try (PrintWriter pw = targetFile == null ? new PrintWriter(System.out) : new PrintWriter(Files.newOutputStream(
                 targetFile.toPath()))) {
@@ -124,8 +134,7 @@ public final class Main {
         }
 
         err.println("==== RDS REPORT ====");
-        err.println("Station identifiers:");
-        ps.forEach(line -> err.println("- " + line));
+        err.println("Station identifiers: " + psid);
         err.println();
         err.println("RDS recording time: " + getDuration(absoluteStart * 1000, absoluteEnd * 1000));
         err.println("Transmitter recording time: " + (transmitterStart == Long.MAX_VALUE || transmitterEnd == Long.MIN_VALUE ? "No data received" : getDuration(
