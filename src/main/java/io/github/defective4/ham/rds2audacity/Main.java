@@ -91,6 +91,29 @@ public final class Main {
             range.setStart(Math.min(range.getStart(), time));
         }
 
+        err.println("Correcting song timestamps");
+        for (Map.Entry<String, TimeRange> song : new ArrayList<>(songTimes.entrySet())) {
+            List<TimeRange> conflicts = new ArrayList<>();
+            TimeRange range = song.getValue();
+            for (Map.Entry<String, TimeRange> subsong : songTimes.entrySet()) {
+                if (subsong.getKey().equals(song.getKey())) continue;
+                TimeRange subrange = subsong.getValue();
+                if (subrange.getStart() >= range.getStart() && subrange.getEnd() <= range.getEnd()) {
+                    conflicts.add(subrange);
+                }
+            }
+
+            if (!conflicts.isEmpty()) {
+                conflicts.sort((time1, time2) -> (int) (time1.getStart() - time2.getStart()));
+                long oldEnd = range.getEnd();
+                range.setEnd(Math.max(range.getStart(), conflicts.get(0).getStart() - 1));
+                songTimes.put(song.getKey() + " (2)",
+                              new TimeRange(Math.min(conflicts.get(conflicts.size() - 1).getEnd() + 1, oldEnd),
+                                            oldEnd));
+            }
+            break;
+        }
+
         err.println("Writing labels...");
         try (PrintWriter pw = targetFile == null ? new PrintWriter(System.out) : new PrintWriter(Files.newOutputStream(
                 targetFile.toPath()))) {
