@@ -13,6 +13,10 @@ public class TimeRange {
         end = Long.MIN_VALUE;
     }
 
+    public long getDuration() {
+        return end - start;
+    }
+
     @Override
     public String toString() {
         return "TimeRange{" + "start=" + start + ", end=" + end + '}';
